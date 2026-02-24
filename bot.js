@@ -5,7 +5,36 @@ const questions = require("./questions");
 const sheets = require("./sheets");
 
 const TOKEN = process.env.TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+
+// Switch between polling (local/dev) and webhook (render) by setting WEBHOOK_URL.
+// If WEBHOOK_URL is provided, the app starts an Express server and registers
+// a Telegram webhook at `${WEBHOOK_URL}/webhook/${TOKEN}`. Otherwise it uses polling.
+let bot;
+if (process.env.WEBHOOK_URL) {
+  const express = require("express");
+  const app = express();
+  app.use(express.json());
+
+  bot = new TelegramBot(TOKEN, { polling: false });
+
+  const webhookPath = `/webhook/${TOKEN}`;
+  const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
+
+  bot.setWebHook(fullWebhookUrl).catch(err => console.error("setWebHook error:", err));
+
+  app.post(webhookPath, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  });
+
+  app.get("/", (req, res) => res.send("OK"));
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+
+} else {
+  bot = new TelegramBot(TOKEN, { polling: true });
+}
 
 /* ------------------ KEYBOARDS ------------------ */
 const yesNo = [["Yes","No"]];
