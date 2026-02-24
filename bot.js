@@ -43,25 +43,16 @@ const roles = [["Member","TL"],["EB","LCP"],["MCVP","EST/National OC"]];
 const lcvpFunctions = [["TM","FLA","OGX"],["IGV","IGT","BD"],["MKT","EWA","PR"]];
 
 /* ------------------ KPI DATA ------------------ */
-const exchangeMetrics = [
-  { code:"#APL", text:"Applications received (PPL) 📥" },
-  { code:"#ACC", text:"Accepted ✅" },
-  { code:"#APD", text:"Approved 📝" },
-  { code:"#RE", text:"Realised 🎯" },
-  { code:"#FI", text:"Finished 🏁" },
-  { code:"#CO", text:"Complete 🎉" }
-];
-
 const deptQuestions = {
   TM:["P","TM","FLA","OGX","IGV","IGT","MKT","EWA","PR","BD"],
-  FLA:["Revenue for the month 💰","PnL for the month 💰"],
-  OGX:exchangeMetrics,
-  IGV:exchangeMetrics,
-  IGT:exchangeMetrics,
-  MKT:["Sign-ups 📝"],
-  BD:["MOAs 🤝","Meetings 🤝","OP Secured 🤝","GEPP (Non-OP Exchange Partners) Secured 🤝","Revenue 💰"],
-  EWA:["Event Sign-ups 🎉","Events Executed 🎉","%SU-APL 🎉"],
-  PR:["Event Sign-ups 🎉","Events Executed 🎉","%SU-APL 🎉"]
+  FLA:["$ Total Revenue Recognised 💰", "$ Net Profit 💸", "%Budget Variance (GvA) 📈", "%FSI Compliance Rate 📋"],
+  OGX: ["#APL 👥","#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
+  IGV: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
+  IGT: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
+  MKT:["#Digital Campaigns 📱", "Physical Campaigns/Projects 🎪 (if you have a PR/EwA dept handling this, place N/A)", "#Sign-ups 📝"],
+  BD:["$BD Revenue Recognised 💰","#GEPP Closed 🤝","%SOP Compliance 📋", "Average Partner NPS 💯"],
+  EWA:["Total Event Sign-ups 📝", "#EwA Events Executed 🎪", "%EwA2ELD ⚡️", "#EwA Partners Closed 🤝", "$Event Revenue Recognised 💰"],
+  PR:["Total Event Sign-ups 📝","#PR Events Executed 🎪", "%PR2ELD ⚡️", "#PR Partners Closed 🤝", "$Event Revenue Recognised 💰"]
 };
 
 function currentMonth(){
