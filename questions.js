@@ -14,9 +14,6 @@ const MONTHLY = [
   { code: "6.2", base: "given opportunities to bond with the team 🫂" },
   { code: "6.3", base: "given opportunities for the team to review progress together 📊" },
   { code: "6.4", base: "given team spaces for development ⚡" }
-];
-
-const FEBRUARY = [
   { code: "2.1", base: "given enough transition to start the role confidently 🔑" },
   { code: "2.2", base: "able to understand the tools and systems needed 💻" },
   { code: "3.1", base: "introduced to AIESEC social platforms 🌐" },
