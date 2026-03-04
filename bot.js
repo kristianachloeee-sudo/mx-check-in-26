@@ -12,7 +12,17 @@ const MONTH_NAMES = [
   "July","August","September","October","November","December"
 ];
 
-const FEBRUARY_INDEX = 1; // 0 = Jan, 1 = Feb, etc.
+function buildQuestionSet(month, phase){
+  // month = number 0-11 (0 = Jan)
+  const monthName = MONTH_NAMES[month];  // converts 1 → "February"
+
+  const questionsForPhase = [...]; // your existing logic to pick questions
+
+  return questionsForPhase.map(q => ({
+    code: q.code,
+    text: `This ${monthName}, ${q.base}`  // now prints proper month
+  }));
+}
 
 // ------------------ BOT SETUP ------------------
 let bot;
