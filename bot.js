@@ -9,21 +9,21 @@ const FEBRUARY_INDEX = 1; // 0 = January
 const MONTH_NAME = "February";
 
 const MONTHLY = [
-  { code: "1.1", base: "clear about responsibilities this month 📝" },
-  { code: "1.2", base: "supported in personal growth 🌱" },
-  { code: "2.3", base: "given spaces to learn and improve within the role 📚" },
-  { code: "4.2", base: "given chances to engage with the community 🤝" },
-  { code: "5.2", base: "doing okay and know where to get support 💛" },
-  { code: "6.2", base: "given opportunities to bond with the team 🫂" },
-  { code: "6.3", base: "given opportunities for the team to review progress together 📊" },
-  { code: "6.4", base: "given team spaces for development ⚡" },
-  { code: "2.1", base: "given enough transition to start the role confidently 🔑" },
-  { code: "2.2", base: "able to understand the tools and systems needed 💻" },
-  { code: "3.1", base: "introduced to AIESEC social platforms 🌐" },
+  { code: "1.1", base: "was clear about responsibilities this month 📝" },
+  { code: "1.2", base: "supported in personal growth 🌱" }, // EST special
+  { code: "2.3", base: "gave spaces to learn and improve within the role 📚" },
+  { code: "4.2", base: "gave chances to engage with the community 🤝" },
+  { code: "5.2", base: "was doing okay and knew where to get support 💛" },
+  { code: "6.2", base: "gave opportunities to bond with the team 🫂" },
+  { code: "6.3", base: "gave opportunities for the team to review progress together 📊" },
+  { code: "6.4", base: "gave team spaces for development ⚡" },
+  { code: "2.1", base: "had enough transition to start the role confidently 🔑" },
+  { code: "2.2", base: "was able to understand the tools and systems needed 💻" },
+  { code: "3.1", base: "was introduced to AIESEC social platforms 🌐" },
   { code: "3.2", base: "clearly explained our community rules 📜" },
-  { code: "4.1", base: "added to communication channels 📬" },
-  { code: "5.1", base: "oriented to their tools and workspaces 🛠️" },
-  { code: "6.1", base: "given a team-building space to feel connected to my team 🌟" }
+  { code: "4.1", base: "was added to communication channels 📬" },
+  { code: "5.1", base: "was oriented to their tools and workspaces 🛠️" },
+  { code: "6.1", base: "had a team-building space to feel connected to my team 🌟" }
 ];
 
 const yesNo = [["Yes","No"]];
@@ -64,6 +64,10 @@ function buildQuestionSet(phase){
   });
 }
 
+// ------------------ GLOBAL ERROR HANDLERS ------------------
+process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
+process.on("unhandledRejection", (reason, promise) => console.error("Unhandled rejection:", reason, promise));
+
 // ------------------ BOT SETUP ------------------
 let bot;
 if(process.env.WEBHOOK_URL){
@@ -93,12 +97,21 @@ if(process.env.WEBHOOK_URL){
 // ------------------ SESSION MEMORY ------------------
 const sessions = {};
 
+// ------------------ SAFE SEND FUNCTION ------------------
+async function safeSend(uid, text, opts={}){
+  try{
+    await bot.sendMessage(uid, text, opts);
+  } catch(err){
+    console.error("Telegram sendMessage failed:", err);
+  }
+}
+
 // ------------------ START COMMAND ------------------
-bot.onText(/\/checkin/, (msg)=>{
+bot.onText(/\/checkin/, async(msg)=>{
   const uid = msg.from.id;
   sessions[uid] = { step:"name", role:null, answers:{}, phase:"receive", index:0 };
 
-  bot.sendMessage(uid,
+  await safeSend(uid,
 `Hi ${msg.from.first_name}! 
 We just want to hear how your month went ✨ Please take 3 minutes to answer this quick check-in!
 #FearlessAPHL 💙🐋
@@ -119,19 +132,19 @@ bot.on("message", async(msg)=>{
     case "name":
       storage.updateUser(uid,{name:text});
       session.step="nickname";
-      return bot.sendMessage(uid,"Great! What should we call you?");
+      return safeSend(uid,"Great! What should we call you?");
 
     case "nickname":
       storage.updateUser(uid,{nickname:text});
       session.step="lc";
-      return bot.sendMessage(uid,"Which LC are you from?",{
+      return safeSend(uid,"Which LC are you from?",{
         reply_markup:{keyboard:[["AdMU","CSB","DLSU"],["UPC","UPD","UPLB"],["UPM","UST","MC"],["EST/National OC"]],one_time_keyboard:true}
       });
 
     case "lc":
       storage.updateUser(uid,{lc:text});
       session.step="role";
-      return bot.sendMessage(uid,"What’s your role?",{reply_markup:{keyboard:roles,one_time_keyboard:true}});
+      return safeSend(uid,"What’s your role?",{reply_markup:{keyboard:roles,one_time_keyboard:true}});
 
     case "role":
       storage.updateUser(uid,{role:text});
@@ -141,41 +154,41 @@ bot.on("message", async(msg)=>{
       session.index = 0;
       session.step = "receive";
 
-      return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
     // ----- RECEIVE -----
     case "receive":
       session.answers[`receive_${session.questions[session.index].code}`] = text;
       session.index++;
       if(session.index < session.questions.length)
-        return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
       if(session.role === "Member"){
         session.step="est";
-        return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
+        return safeSend(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
       }
 
       // ----- GIVE -----
-      await bot.sendMessage(uid,"Now thinking about your team. These questions are in the context of how you supported your members this February.");
+      await safeSend(uid,"Now thinking about your team. These questions are in the context of how you supported your members this February.");
       session.questions = buildQuestionSet("give");
       session.index = 0;
       session.step = "give";
-      return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
     case "give":
       session.answers[`give_${session.questions[session.index].code}`] = text;
       session.index++;
       if(session.index < session.questions.length)
-        return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
       session.step = "est";
-      return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
+      return safeSend(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
 
     // ----- EST -----
     case "est":
       if(text==="Yes"){
         session.step="est_project";
-        return bot.sendMessage(uid,"These questions are in the context of your National/OC role.\nWhich National/OC project are you part of?");
+        return safeSend(uid,"These questions are in the context of your National/OC role.\nWhich National/OC project are you part of?");
       }
 
       if(session.role==="EB") return proceedAchievements(uid, session);
@@ -186,13 +199,13 @@ bot.on("message", async(msg)=>{
       session.questions = buildQuestionSet("est");
       session.index = 0;
       session.step = "est_questions";
-      return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
     case "est_questions":
       session.answers[`est_${session.questions[session.index].code}`] = text;
       session.index++;
       if(session.index < session.questions.length)
-        return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
       if(session.role==="EB") return proceedAchievements(uid, session);
       return finishCheckIn(uid, session);
@@ -204,7 +217,7 @@ bot.on("message", async(msg)=>{
       session.answers[text]={};
       session.step="achievements_dept";
 
-      await bot.sendMessage(uid,`These are your department achievements for ${MONTH_NAME}. Please provide the numbers you achieved for each metric.`);
+      await safeSend(uid,`These are your department achievements for ${MONTH_NAME}. Please provide the numbers you achieved for each metric.`);
       return sendKPIQuestion(uid, session);
 
     case "achievements_dept":
@@ -215,7 +228,7 @@ bot.on("message", async(msg)=>{
         return sendKPIQuestion(uid, session);
 
       session.step="final_messages";
-      return bot.sendMessage(uid,"Any final messages you'd like to share?");
+      return safeSend(uid,"Any final messages you'd like to share?");
 
     case "final_messages":
       session.answers.final_messages=text;
@@ -226,7 +239,7 @@ bot.on("message", async(msg)=>{
 // ------------------ KPI FUNCTIONS ------------------
 function proceedAchievements(uid, session){
   session.step="deptQuestions";
-  bot.sendMessage(uid,"Which department are you an EB of?",{reply_markup:{keyboard:lcvpFunctions,one_time_keyboard:true}});
+  safeSend(uid,"Which department are you an EB of?",{reply_markup:{keyboard:lcvpFunctions,one_time_keyboard:true}});
 }
 
 function sendKPIQuestion(uid, session){
@@ -240,12 +253,12 @@ function sendKPIQuestion(uid, session){
       ? `How many ${q.code} did you achieve this month? ${q.text}`
       : q;
 
-  bot.sendMessage(uid, text);
+  safeSend(uid, text);
 }
 
 // ------------------ FINISH ------------------
 async function finishCheckIn(uid, session){
-  const user = storage.getUser(uid);
+  const user = storage.getUser(uid) || { name:"Unknown", nickname:"Unknown", lc:"Unknown" };
   const row = [
     new Date().toISOString(),
     user.name,
@@ -259,6 +272,6 @@ async function finishCheckIn(uid, session){
   catch(err){ console.error("Google Sheets error:", err); }
 
   storage.clearAnswers(uid);
-  bot.sendMessage(uid,"Thank you! 💙🐋\nYour feedback has been submitted ✨ Thank you for building #FearlessAPHL with us!");
+  safeSend(uid,"Thank you! 💙🐋\nYour feedback has been submitted ✨ Thank you for building #FearlessAPHL with us!");
   delete sessions[uid];
 }
