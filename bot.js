@@ -114,7 +114,7 @@ case "role":
   storage.updateUser(uid,{role:text});
   session.role=text;
 
-  session.questions = questions.buildQuestionSet(currentMonth(),"receive");
+  session.questions = questions.buildQuestionSet(1,"receive");
   session.index=0;
   session.step="receive";
 
@@ -135,7 +135,7 @@ case "receive":
   }
 
   // others proceed to give standards
-  session.questions = questions.buildQuestionSet(currentMonth(),"give");
+  session.questions = questions.buildQuestionSet(1,"give");
   session.index=0;
   session.step="give";
 
@@ -165,7 +165,7 @@ case "est":
 
 case "est_project":
   session.answers.est_project=text;
-  session.questions = questions.buildQuestionSet(currentMonth(),"est");
+  session.questions = questions.buildQuestionSet(1,"est");
   session.index=0;
   session.step="est_questions";
   return bot.sendMessage(uid,session.questions[0].text,{reply_markup:{keyboard:scale,one_time_keyboard:true}});
