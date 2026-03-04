@@ -3,15 +3,10 @@ const TelegramBot = require("node-telegram-bot-api");
 const storage = require("./storage");
 const sheets = require("./sheets");
 
+// ------------------ CONSTANTS ------------------
 const TOKEN = process.env.TOKEN;
-
-// ------------------ MONTH / QUESTIONS ------------------
 const FEBRUARY_INDEX = 1; // 0 = January
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December"
-];
+const MONTH_NAME = "February";
 
 const MONTHLY = [
   { code: "1.1", base: "clear about responsibilities this month 📝" },
@@ -31,22 +26,11 @@ const MONTHLY = [
   { code: "6.1", base: "given a team-building space to feel connected to my team 🌟" }
 ];
 
-function buildQuestionSet(monthIndex, phase){
-  const monthName = MONTH_NAMES[monthIndex];
-  // For now, just return all questions with month added
-  return MONTHLY.map(q => ({
-    code: q.code,
-    text: `This ${monthName}, ${q.base}`
-  }));
-}
-
-// ------------------ KEYBOARDS ------------------
 const yesNo = [["Yes","No"]];
 const scale = [["1: Not Really","3: Somehow","5: Yes Definitely"]];
 const roles = [["Member","TL"],["EB","LCP"],["MCVP","EST/National OC"]];
 const lcvpFunctions = [["TM","FLA","OGX"],["IGV","IGT","BD"],["MKT","EWA","PR"]];
 
-// ------------------ KPI DATA ------------------
 const deptQuestions = {
   TM:["P","TM","FLA","OGX","IGV","IGT","MKT","EWA","PR","BD"],
   FLA:["$ Total Revenue Recognised 💰", "$ Net Profit 💸", "%Budget Variance (GvA) 📈", "%FSI Compliance Rate 📋"],
@@ -59,38 +43,59 @@ const deptQuestions = {
   PR:["Total Event Sign-ups 📝","#PR Events Executed 🎪", "%PR2ELD ⚡️", "#PR Partners Closed 🤝", "$Event Revenue Recognised 💰"]
 };
 
-// ------------------ SESSION MEMORY ------------------
-const sessions = {};
+// ------------------ QUESTION BUILDER ------------------
+function buildQuestionSet(phase){
+  return MONTHLY.map(q => {
+    let text;
+    if(phase === "receive"){
+      text = `This ${MONTH_NAME}, I ${q.base}`;
+    } else if(phase === "give"){
+      text = `This ${MONTH_NAME}, I made sure my members ${q.base}`;
+    } else if(phase === "est"){
+      if(q.code === "1.2"){
+        text = `This ${MONTH_NAME}, I feel like I had the space to grow and get what I wanted from the role.`;
+      } else {
+        text = `This ${MONTH_NAME}, I ${q.base}`;
+      }
+    } else {
+      text = `This ${MONTH_NAME}, ${q.base}`;
+    }
+    return { code: q.code, text };
+  });
+}
 
 // ------------------ BOT SETUP ------------------
 let bot;
-if (process.env.WEBHOOK_URL) {
+if(process.env.WEBHOOK_URL){
   const express = require("express");
   const app = express();
   app.use(express.json());
 
   bot = new TelegramBot(TOKEN, { polling: false });
+
   const webhookPath = `/webhook/${TOKEN}`;
   const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
+  bot.setWebHook(fullWebhookUrl).catch(err=>console.error(err));
 
-  bot.setWebHook(fullWebhookUrl).catch(err => console.error("setWebHook error:", err));
-
-  app.post(webhookPath, (req, res) => {
+  app.post(webhookPath, (req,res)=>{
     bot.processUpdate(req.body);
     res.sendStatus(200);
   });
-  app.get("/", (req, res) => res.send("OK"));
+
+  app.get("/", (req,res)=>res.send("OK"));
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+  app.listen(PORT, ()=>console.log(`Server listening on ${PORT}`));
 } else {
   bot = new TelegramBot(TOKEN, { polling: true });
 }
 
+// ------------------ SESSION MEMORY ------------------
+const sessions = {};
+
 // ------------------ START COMMAND ------------------
 bot.onText(/\/checkin/, (msg)=>{
   const uid = msg.from.id;
-
   sessions[uid] = { step:"name", role:null, answers:{}, phase:"receive", index:0 };
 
   bot.sendMessage(uid,
@@ -110,8 +115,7 @@ bot.on("message", async(msg)=>{
   const text = msg.text;
 
   switch(session.step){
-
-    // -------- BASIC INFO --------
+    // ----- BASIC INFO -----
     case "name":
       storage.updateUser(uid,{name:text});
       session.step="nickname";
@@ -133,17 +137,16 @@ bot.on("message", async(msg)=>{
       storage.updateUser(uid,{role:text});
       session.role = text;
 
-      session.questions = buildQuestionSet(FEBRUARY_INDEX, "receive");
+      session.questions = buildQuestionSet("receive");
       session.index = 0;
       session.step = "receive";
 
       return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-    // -------- RECEIVE --------
+    // ----- RECEIVE -----
     case "receive":
       session.answers[`receive_${session.questions[session.index].code}`] = text;
       session.index++;
-
       if(session.index < session.questions.length)
         return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
@@ -152,36 +155,35 @@ bot.on("message", async(msg)=>{
         return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
       }
 
-      session.questions = buildQuestionSet(FEBRUARY_INDEX, "give");
+      // ----- GIVE -----
+      await bot.sendMessage(uid,"Now thinking about your team. These questions are in the context of how you supported your members this February.");
+      session.questions = buildQuestionSet("give");
       session.index = 0;
       session.step = "give";
+      return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-      return bot.sendMessage(uid,"Now thinking about your team 👇",{reply_markup:{remove_keyboard:true}})
-        .then(()=>bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}}));
-
-    // -------- GIVE --------
     case "give":
       session.answers[`give_${session.questions[session.index].code}`] = text;
       session.index++;
-
       if(session.index < session.questions.length)
         return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
       session.step = "est";
       return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
 
-    // -------- EST --------
+    // ----- EST -----
     case "est":
       if(text==="Yes"){
         session.step="est_project";
-        return bot.sendMessage(uid,"Which National/OC project are you part of?");
+        return bot.sendMessage(uid,"These questions are in the context of your National/OC role.\nWhich National/OC project are you part of?");
       }
+
       if(session.role==="EB") return proceedAchievements(uid, session);
       return finishCheckIn(uid, session);
 
     case "est_project":
-      session.answers.est_project=text;
-      session.questions = buildQuestionSet(FEBRUARY_INDEX, "est");
+      session.answers.est_project = text;
+      session.questions = buildQuestionSet("est");
       session.index = 0;
       session.step = "est_questions";
       return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
@@ -189,26 +191,26 @@ bot.on("message", async(msg)=>{
     case "est_questions":
       session.answers[`est_${session.questions[session.index].code}`] = text;
       session.index++;
-
       if(session.index < session.questions.length)
         return bot.sendMessage(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
       if(session.role==="EB") return proceedAchievements(uid, session);
       return finishCheckIn(uid, session);
 
-    // -------- EB KPI --------
+    // ----- EB KPI -----
     case "deptQuestions":
       session.kpi_dept=text;
       session.kpi_index=0;
       session.answers[text]={};
       session.step="achievements_dept";
+
+      await bot.sendMessage(uid,`These are your department achievements for ${MONTH_NAME}. Please provide the numbers you achieved for each metric.`);
       return sendKPIQuestion(uid, session);
 
     case "achievements_dept":
       const dept=session.kpi_dept;
       session.answers[dept][session.kpi_index]=text;
       session.kpi_index++;
-
       if(session.kpi_index < deptQuestions[dept].length)
         return sendKPIQuestion(uid, session);
 
@@ -221,7 +223,7 @@ bot.on("message", async(msg)=>{
   }
 });
 
-// ------------------ KPI FUNCTIONS ----------------
+// ------------------ KPI FUNCTIONS ------------------
 function proceedAchievements(uid, session){
   session.step="deptQuestions";
   bot.sendMessage(uid,"Which department are you an EB of?",{reply_markup:{keyboard:lcvpFunctions,one_time_keyboard:true}});
@@ -233,7 +235,7 @@ function sendKPIQuestion(uid, session){
   const q = metrics[session.kpi_index];
 
   const text = dept==="TM"
-    ? `How many people are in the "${q}" department? (Please input it as #VP, #TL, #Members, #Directors - Example: 1, 3, 9, 0) 👥`
+    ? `How many people are in the "${q}" department? (Please input as #VP, #TL, #Members, #Directors - Example: 1,3,9,0) 👥`
     : typeof q==="object"
       ? `How many ${q.code} did you achieve this month? ${q.text}`
       : q;
@@ -241,10 +243,9 @@ function sendKPIQuestion(uid, session){
   bot.sendMessage(uid, text);
 }
 
-// ------------------ FINISH ----------------
+// ------------------ FINISH ------------------
 async function finishCheckIn(uid, session){
   const user = storage.getUser(uid);
-
   const row = [
     new Date().toISOString(),
     user.name,
@@ -254,7 +255,7 @@ async function finishCheckIn(uid, session){
     JSON.stringify(session.answers)
   ];
 
-  try{ await sheets.submitRow(row); }
+  try { await sheets.submitRow(row); } 
   catch(err){ console.error("Google Sheets error:", err); }
 
   storage.clearAnswers(uid);
