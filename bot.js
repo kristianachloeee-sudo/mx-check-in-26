@@ -1,55 +1,43 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const storage = require("./storage");
-const questions = require("./questions");
 const sheets = require("./sheets");
 
 const TOKEN = process.env.TOKEN;
 
-// Month helper: convert number → month name
+// ------------------ MONTH / QUESTIONS ------------------
+const FEBRUARY_INDEX = 1; // 0 = January
+
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
 ];
 
-function buildQuestionSet(month, phase){
-  // month = number 0-11 (0 = Jan)
-  const monthName = MONTH_NAMES[month];  // converts 1 → "February"
+const MONTHLY = [
+  { code: "1.1", base: "clear about responsibilities this month 📝" },
+  { code: "1.2", base: "supported in personal growth 🌱" },
+  { code: "2.3", base: "given spaces to learn and improve within the role 📚" },
+  { code: "4.2", base: "given chances to engage with the community 🤝" },
+  { code: "5.2", base: "doing okay and know where to get support 💛" },
+  { code: "6.2", base: "given opportunities to bond with the team 🫂" },
+  { code: "6.3", base: "given opportunities for the team to review progress together 📊" },
+  { code: "6.4", base: "given team spaces for development ⚡" },
+  { code: "2.1", base: "given enough transition to start the role confidently 🔑" },
+  { code: "2.2", base: "able to understand the tools and systems needed 💻" },
+  { code: "3.1", base: "introduced to AIESEC social platforms 🌐" },
+  { code: "3.2", base: "clearly explained our community rules 📜" },
+  { code: "4.1", base: "added to communication channels 📬" },
+  { code: "5.1", base: "oriented to their tools and workspaces 🛠️" },
+  { code: "6.1", base: "given a team-building space to feel connected to my team 🌟" }
+];
 
-  const questionsForPhase = [...]; // your existing logic to pick questions
-
-  return questionsForPhase.map(q => ({
+function buildQuestionSet(monthIndex, phase){
+  const monthName = MONTH_NAMES[monthIndex];
+  // For now, just return all questions with month added
+  return MONTHLY.map(q => ({
     code: q.code,
-    text: `This ${monthName}, ${q.base}`  // now prints proper month
+    text: `This ${monthName}, ${q.base}`
   }));
-}
-
-// ------------------ BOT SETUP ------------------
-let bot;
-if (process.env.WEBHOOK_URL) {
-  const express = require("express");
-  const app = express();
-  app.use(express.json());
-
-  bot = new TelegramBot(TOKEN, { polling: false });
-
-  const webhookPath = `/webhook/${TOKEN}`;
-  const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
-
-  bot.setWebHook(fullWebhookUrl).catch(err => console.error("setWebHook error:", err));
-
-  app.post(webhookPath, (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
-  });
-
-  app.get("/", (req, res) => res.send("OK"));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
-
-} else {
-  bot = new TelegramBot(TOKEN, { polling: true });
 }
 
 // ------------------ KEYBOARDS ------------------
@@ -74,17 +62,36 @@ const deptQuestions = {
 // ------------------ SESSION MEMORY ------------------
 const sessions = {};
 
+// ------------------ BOT SETUP ------------------
+let bot;
+if (process.env.WEBHOOK_URL) {
+  const express = require("express");
+  const app = express();
+  app.use(express.json());
+
+  bot = new TelegramBot(TOKEN, { polling: false });
+  const webhookPath = `/webhook/${TOKEN}`;
+  const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
+
+  bot.setWebHook(fullWebhookUrl).catch(err => console.error("setWebHook error:", err));
+
+  app.post(webhookPath, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  });
+  app.get("/", (req, res) => res.send("OK"));
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+} else {
+  bot = new TelegramBot(TOKEN, { polling: true });
+}
+
 // ------------------ START COMMAND ------------------
 bot.onText(/\/checkin/, (msg)=>{
   const uid = msg.from.id;
 
-  sessions[uid] = {
-    step: "name",
-    role: null,
-    answers: {},
-    phase: "receive",
-    index: 0
-  };
+  sessions[uid] = { step:"name", role:null, answers:{}, phase:"receive", index:0 };
 
   bot.sendMessage(uid,
 `Hi ${msg.from.first_name}! 
@@ -104,7 +111,7 @@ bot.on("message", async(msg)=>{
 
   switch(session.step){
 
-    // ---------------- BASIC INFO ----------------
+    // -------- BASIC INFO --------
     case "name":
       storage.updateUser(uid,{name:text});
       session.step="nickname";
@@ -126,16 +133,13 @@ bot.on("message", async(msg)=>{
       storage.updateUser(uid,{role:text});
       session.role = text;
 
-      // Build receive questions safely
-      session.questions = questions.buildQuestionSet(FEBRUARY_INDEX, "receive") || [];
-      if(session.questions.length === 0) return bot.sendMessage(uid,"Oops! No questions found for this month.");
-
+      session.questions = buildQuestionSet(FEBRUARY_INDEX, "receive");
       session.index = 0;
       session.step = "receive";
 
       return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-    // ---------------- RECEIVE ----------------
+    // -------- RECEIVE --------
     case "receive":
       session.answers[`receive_${session.questions[session.index].code}`] = text;
       session.index++;
@@ -148,15 +152,14 @@ bot.on("message", async(msg)=>{
         return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
       }
 
-      // Others proceed to give standards
-      session.questions = questions.buildQuestionSet(FEBRUARY_INDEX, "give") || [];
+      session.questions = buildQuestionSet(FEBRUARY_INDEX, "give");
       session.index = 0;
       session.step = "give";
 
       return bot.sendMessage(uid,"Now thinking about your team 👇",{reply_markup:{remove_keyboard:true}})
         .then(()=>bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}}));
 
-    // ---------------- GIVE ----------------
+    // -------- GIVE --------
     case "give":
       session.answers[`give_${session.questions[session.index].code}`] = text;
       session.index++;
@@ -167,21 +170,18 @@ bot.on("message", async(msg)=>{
       session.step = "est";
       return bot.sendMessage(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
 
-    // ---------------- EST ----------------
+    // -------- EST --------
     case "est":
       if(text==="Yes"){
         session.step="est_project";
         return bot.sendMessage(uid,"Which National/OC project are you part of?");
       }
-
       if(session.role==="EB") return proceedAchievements(uid, session);
       return finishCheckIn(uid, session);
 
     case "est_project":
       session.answers.est_project=text;
-      session.questions = questions.buildQuestionSet(FEBRUARY_INDEX, "est") || [];
-      if(session.questions.length === 0) return bot.sendMessage(uid,"Oops! No EST questions found for this month.");
-
+      session.questions = buildQuestionSet(FEBRUARY_INDEX, "est");
       session.index = 0;
       session.step = "est_questions";
       return bot.sendMessage(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
@@ -196,7 +196,7 @@ bot.on("message", async(msg)=>{
       if(session.role==="EB") return proceedAchievements(uid, session);
       return finishCheckIn(uid, session);
 
-    // ---------------- EB KPI ----------------
+    // -------- EB KPI --------
     case "deptQuestions":
       session.kpi_dept=text;
       session.kpi_index=0;
