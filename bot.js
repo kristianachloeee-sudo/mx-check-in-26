@@ -1,4 +1,3 @@
-// bot.js
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const storage = require("./storage");
@@ -29,7 +28,7 @@ if (process.env.WEBHOOK_URL) {
     res.sendStatus(200);
   });
 
-  app.get("/", (req, res) => res.send("MXS Bot running"));
+  app.get("/", (_req, res) => res.send("MXS Bot running"));
 
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(`Server running on ${PORT}`));
@@ -41,17 +40,9 @@ if (process.env.WEBHOOK_URL) {
 
 const yesNo = [["Yes", "No"]];
 
-const scale = [
-  ["1: Not Really"],
-  ["3: Somehow"],
-  ["5: Yes Definitely"]
-];
+const scale = [["1: Not Really"], ["3: Somehow"], ["5: Yes Definitely"]];
 
-const roles = [
-  ["Member", "TL"],
-  ["EB", "LCP"],
-  ["MCVP"]
-];
+const roles = [["Member", "TL"], ["EB", "LCP"], ["MCVP"]];
 
 const lcs = [
   ["MC", "ADMU", "CSB"],
@@ -59,11 +50,7 @@ const lcs = [
   ["UPLB", "UPM", "UST"]
 ];
 
-const departments = [
-  ["TM", "FLA", "OGX"],
-  ["IGV", "IGT", "BD"],
-  ["MKT", "PR", "EWA"]
-];
+const departments = [["TM", "FLA", "OGX"], ["IGV", "IGT", "BD"], ["MKT", "PR", "EWA"]];
 
 /* ---------------- KPI DATA ---------------- */
 
@@ -77,42 +64,15 @@ const deptQuestions = {
     "%FSI Compliance Rate 📋"
   ],
 
-  OGX: [
-    "#APL 👥",
-    "#APD ✅",
-    "#RE ✈️",
-    "#FI 🌍",
-    "Average NPS 💯"
-  ],
+  OGX: ["#APL 👥", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
 
-  IGV: [
-    "#Opportunities Opened 🔎",
-    "#APD ✅",
-    "#RE ✈️",
-    "#FI 🌍",
-    "Average NPS 💯"
-  ],
+  IGV: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
 
-  IGT: [
-    "#Opportunities Opened 🔎",
-    "#APD ✅",
-    "#RE ✈️",
-    "#FI 🌍",
-    "Average NPS 💯"
-  ],
+  IGT: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
 
-  MKT: [
-    "#Digital Campaigns 📱",
-    "Physical Campaigns/Projects 🎪",
-    "#Sign-ups 📝"
-  ],
+  MKT: ["#Digital Campaigns 📱", "Physical Campaigns/Projects 🎪", "#Sign-ups 📝"],
 
-  BD: [
-    "$BD Revenue Recognised 💰",
-    "#GEPP Closed 🤝",
-    "%SOP Compliance 📋",
-    "Average Partner NPS 💯"
-  ],
+  BD: ["$BD Revenue Recognised 💰", "#GEPP Closed 🤝", "%SOP Compliance 📋", "Average Partner NPS 💯"],
 
   EWA: [
     "Total Event Sign-ups 📝",
@@ -130,6 +90,16 @@ const deptQuestions = {
     "$Event Revenue Recognised 💰"
   ]
 };
+
+/* ---------------- CONTEXT QUESTIONS ---------------- */
+
+const contextQuestions = [
+  "What were your top 3 focuses for the month of March? 🌟",
+  "What worked well this month in terms of operations? 💙",
+  "What could have been improved this month in terms of operations? 🌱",
+  "What was the context of your LC or department this month? 🌍",
+  "What are your focus areas for April? 🚀"
+];
 
 /* ---------------- FORCE MONTH ---------------- */
 
@@ -150,10 +120,32 @@ function removeKeyboard() {
 function promptEst(uid, session) {
   session.step = "est";
 
+  return bot.sendMessage(uid, "Are you in EST or a National OC this term? 🌍", {
+    reply_markup: { keyboard: yesNo, one_time_keyboard: true }
+  });
+}
+
+function startContext(uid, session) {
+  session.step = "context";
+  session.context_index = 0;
+  session.answers.context = [];
+
+  return bot
+    .sendMessage(
+      uid,
+      "Before we wrap up, here are a few leadership reflection questions for this month ✨",
+      { reply_markup: removeKeyboard() }
+    )
+    .then(() => sendContextQuestion(uid, session));
+}
+
+function sendContextQuestion(uid, session) {
   return bot.sendMessage(
     uid,
-    "Are you in EST or a National OC this term? 🌍",
-    { reply_markup: { keyboard: yesNo, one_time_keyboard: true } }
+    `Question ${session.context_index + 1} of ${contextQuestions.length}
+
+${contextQuestions[session.context_index]}`,
+    { reply_markup: removeKeyboard() }
   );
 }
 
@@ -161,11 +153,13 @@ function goToPostEst(uid, session) {
   if (session.role === "EB") {
     session.step = "dept";
 
-    return bot.sendMessage(
-      uid,
-      "What is your department?",
-      { reply_markup: { keyboard: departments, one_time_keyboard: true } }
-    );
+    return bot.sendMessage(uid, "What is your department?", {
+      reply_markup: { keyboard: departments, one_time_keyboard: true }
+    });
+  }
+
+  if (session.role === "LCP") {
+    return startContext(uid, session);
   }
 
   return askNAMS(uid, session);
@@ -201,7 +195,8 @@ bot.onText(/\/checkin/, (msg) => {
     questions: [],
     index: 0,
     kpi_dept: null,
-    kpi_index: 0
+    kpi_index: 0,
+    context_index: 0
   };
 
   bot.sendMessage(
@@ -305,11 +300,9 @@ In the month of ${currentMonth()}, I was able to...`
       if (text === "Yes") {
         session.step = "est_project";
 
-        return bot.sendMessage(
-          uid,
-          "What EST or National OC are you part of?",
-          { reply_markup: removeKeyboard() }
-        );
+        return bot.sendMessage(uid, "What EST or National OC are you part of?", {
+          reply_markup: removeKeyboard()
+        });
       }
 
       return goToPostEst(uid, session);
@@ -365,8 +358,18 @@ In the month of ${currentMonth()}, I felt... 🌍`
         return sendKPI(uid, session);
       }
 
-      return askNAMS(uid, session);
+      return startContext(uid, session);
     }
+
+    case "context":
+      session.answers.context[session.context_index] = text;
+      session.context_index++;
+
+      if (session.context_index < contextQuestions.length) {
+        return sendContextQuestion(uid, session);
+      }
+
+      return askNAMS(uid, session);
 
     case "nams":
       if (!text) {
