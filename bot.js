@@ -1,76 +1,18 @@
+// bot.js
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const storage = require("./storage");
+const questions = require("./questions");
 const sheets = require("./sheets");
 
-// ------------------ CONSTANTS ------------------
 const TOKEN = process.env.TOKEN;
-const FEBRUARY_INDEX = 1; // 0 = January
-const MONTH_NAME = "February";
+const FORCE_MONTH = "March";
 
-const MONTHLY = [
-  { code: "1.1", base: "was clear about responsibilities this month 📝" },
-  { code: "1.2", base: "supported in personal growth 🌱" }, // EST special
-  { code: "2.3", base: "gave spaces to learn and improve within the role 📚" },
-  { code: "4.2", base: "gave chances to engage with the community 🤝" },
-  { code: "5.2", base: "was doing okay and knew where to get support 💛" },
-  { code: "6.2", base: "gave opportunities to bond with the team 🫂" },
-  { code: "6.3", base: "gave opportunities for the team to review progress together 📊" },
-  { code: "6.4", base: "gave team spaces for development ⚡" },
-  { code: "2.1", base: "had enough transition to start the role confidently 🔑" },
-  { code: "2.2", base: "was able to understand the tools and systems needed 💻" },
-  { code: "3.1", base: "was introduced to AIESEC social platforms 🌐" },
-  { code: "3.2", base: "clearly explained our community rules 📜" },
-  { code: "4.1", base: "was added to communication channels 📬" },
-  { code: "5.1", base: "was oriented to their tools and workspaces 🛠️" },
-  { code: "6.1", base: "had a team-building space to feel connected to my team 🌟" }
-];
+/* ---------------- BOT INITIALIZATION ---------------- */
 
-const yesNo = [["Yes","No"]];
-const scale = [["1: Not Really","3: Somehow","5: Yes Definitely"]];
-const roles = [["Member","TL"],["EB","LCP"],["MCVP","EST/National OC"]];
-const lcvpFunctions = [["TM","FLA","OGX"],["IGV","IGT","BD"],["MKT","EWA","PR"]];
-
-const deptQuestions = {
-  TM:["P","TM","FLA","OGX","IGV","IGT","MKT","EWA","PR","BD"],
-  FLA:["$ Total Revenue Recognised 💰", "$ Net Profit 💸", "%Budget Variance (GvA) 📈", "%FSI Compliance Rate 📋"],
-  OGX: ["#APL 👥","#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  IGV: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  IGT: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  MKT:["#Digital Campaigns 📱", "Physical Campaigns/Projects 🎪 (if you have a PR/EwA dept handling this, place N/A)", "#Sign-ups 📝"],
-  BD:["$BD Revenue Recognised 💰","#GEPP Closed 🤝","%SOP Compliance 📋", "Average Partner NPS 💯"],
-  EWA:["Total Event Sign-ups 📝", "#EwA Events Executed 🎪", "%EwA2ELD ⚡️", "#EwA Partners Closed 🤝", "$Event Revenue Recognised 💰"],
-  PR:["Total Event Sign-ups 📝","#PR Events Executed 🎪", "%PR2ELD ⚡️", "#PR Partners Closed 🤝", "$Event Revenue Recognised 💰"]
-};
-
-// ------------------ QUESTION BUILDER ------------------
-function buildQuestionSet(phase){
-  return MONTHLY.map(q => {
-    let text;
-    if(phase === "receive"){
-      text = `This ${MONTH_NAME}, I ${q.base}`;
-    } else if(phase === "give"){
-      text = `This ${MONTH_NAME}, I made sure my members ${q.base}`;
-    } else if(phase === "est"){
-      if(q.code === "1.2"){
-        text = `This ${MONTH_NAME}, I feel like I had the space to grow and get what I wanted from the role.`;
-      } else {
-        text = `This ${MONTH_NAME}, I ${q.base}`;
-      }
-    } else {
-      text = `This ${MONTH_NAME}, ${q.base}`;
-    }
-    return { code: q.code, text };
-  });
-}
-
-// ------------------ GLOBAL ERROR HANDLERS ------------------
-process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
-process.on("unhandledRejection", (reason, promise) => console.error("Unhandled rejection:", reason, promise));
-
-// ------------------ BOT SETUP ------------------
 let bot;
-if(process.env.WEBHOOK_URL){
+
+if (process.env.WEBHOOK_URL) {
   const express = require("express");
   const app = express();
   app.use(express.json());
@@ -79,199 +21,441 @@ if(process.env.WEBHOOK_URL){
 
   const webhookPath = `/webhook/${TOKEN}`;
   const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
-  bot.setWebHook(fullWebhookUrl).catch(err=>console.error(err));
 
-  app.post(webhookPath, (req,res)=>{
+  bot.setWebHook(fullWebhookUrl);
+
+  app.post(webhookPath, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
   });
 
-  app.get("/", (req,res)=>res.send("OK"));
+  app.get("/", (req, res) => res.send("MXS Bot running"));
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, ()=>console.log(`Server listening on ${PORT}`));
+  app.listen(PORT, () => console.log(`Server running on ${PORT}`));
 } else {
   bot = new TelegramBot(TOKEN, { polling: true });
 }
 
-// ------------------ SESSION MEMORY ------------------
-const sessions = {};
+/* ---------------- KEYBOARDS ---------------- */
 
-// ------------------ SAFE SEND FUNCTION ------------------
-async function safeSend(uid, text, opts={}){
-  try{
-    await bot.sendMessage(uid, text, opts);
-  } catch(err){
-    console.error("Telegram sendMessage failed:", err);
-  }
+const yesNo = [["Yes", "No"]];
+
+const scale = [
+  ["1: Not Really"],
+  ["3: Somehow"],
+  ["5: Yes Definitely"]
+];
+
+const roles = [
+  ["Member", "TL"],
+  ["EB", "LCP"],
+  ["MCVP"]
+];
+
+const lcs = [
+  ["MC", "ADMU", "CSB"],
+  ["DLSU", "UPC", "UPD"],
+  ["UPLB", "UPM", "UST"]
+];
+
+const departments = [
+  ["TM", "FLA", "OGX"],
+  ["IGV", "IGT", "BD"],
+  ["MKT", "PR", "EWA"]
+];
+
+/* ---------------- KPI DATA ---------------- */
+
+const deptQuestions = {
+  TM: ["P", "TM", "FLA", "OGX", "IGV", "IGT", "MKT", "EWA", "PR", "BD"],
+
+  FLA: [
+    "$ Total Revenue Recognised 💰",
+    "$ Net Profit 💸",
+    "%Budget Variance (GvA) 📈",
+    "%FSI Compliance Rate 📋"
+  ],
+
+  OGX: [
+    "#APL 👥",
+    "#APD ✅",
+    "#RE ✈️",
+    "#FI 🌍",
+    "Average NPS 💯"
+  ],
+
+  IGV: [
+    "#Opportunities Opened 🔎",
+    "#APD ✅",
+    "#RE ✈️",
+    "#FI 🌍",
+    "Average NPS 💯"
+  ],
+
+  IGT: [
+    "#Opportunities Opened 🔎",
+    "#APD ✅",
+    "#RE ✈️",
+    "#FI 🌍",
+    "Average NPS 💯"
+  ],
+
+  MKT: [
+    "#Digital Campaigns 📱",
+    "Physical Campaigns/Projects 🎪",
+    "#Sign-ups 📝"
+  ],
+
+  BD: [
+    "$BD Revenue Recognised 💰",
+    "#GEPP Closed 🤝",
+    "%SOP Compliance 📋",
+    "Average Partner NPS 💯"
+  ],
+
+  EWA: [
+    "Total Event Sign-ups 📝",
+    "#EwA Events Executed 🎪",
+    "%EwA2ELD ⚡️",
+    "#EwA Partners Closed 🤝",
+    "$Event Revenue Recognised 💰"
+  ],
+
+  PR: [
+    "Total Event Sign-ups 📝",
+    "#PR Events Executed 🎪",
+    "%PR2ELD ⚡️",
+    "#PR Partners Closed 🤝",
+    "$Event Revenue Recognised 💰"
+  ]
+};
+
+/* ---------------- FORCE MONTH ---------------- */
+
+function currentMonth() {
+  return FORCE_MONTH;
 }
 
-// ------------------ START COMMAND ------------------
-bot.onText(/\/checkin/, async(msg)=>{
+/* ---------------- SESSION STORAGE ---------------- */
+
+const sessions = {};
+
+/* ---------------- HELPERS ---------------- */
+
+function removeKeyboard() {
+  return { remove_keyboard: true };
+}
+
+function promptEst(uid, session) {
+  session.step = "est";
+
+  return bot.sendMessage(
+    uid,
+    "Are you in EST or a National OC this term? 🌍",
+    { reply_markup: { keyboard: yesNo, one_time_keyboard: true } }
+  );
+}
+
+function goToPostEst(uid, session) {
+  if (session.role === "EB") {
+    session.step = "dept";
+
+    return bot.sendMessage(
+      uid,
+      "What is your department?",
+      { reply_markup: { keyboard: departments, one_time_keyboard: true } }
+    );
+  }
+
+  return askNAMS(uid, session);
+}
+
+function askNAMS(uid, session, needsReminder = false) {
+  session.step = "nams";
+
+  const message = needsReminder
+    ? `We can only encode your MXS response once you provide a NAMS reference code.
+
+Please enter your NAMS reference code to continue.`
+    : `Before we finish 💙
+
+Please enter your NAMS reference code.
+
+We can only encode your MXS response once a NAMS reference code is provided.`;
+
+  return bot.sendMessage(uid, message, {
+    reply_markup: removeKeyboard()
+  });
+}
+
+/* ---------------- START ---------------- */
+
+bot.onText(/\/checkin/, (msg) => {
   const uid = msg.from.id;
-  sessions[uid] = { step:"name", role:null, answers:{}, phase:"receive", index:0 };
 
-  await safeSend(uid,
-`Hi ${msg.from.first_name}! 
-We just want to hear how your month went ✨ Please take 3 minutes to answer this quick check-in!
-#FearlessAPHL 💙🐋
+  sessions[uid] = {
+    step: "name",
+    role: null,
+    answers: {},
+    questions: [],
+    index: 0,
+    kpi_dept: null,
+    kpi_index: 0
+  };
 
-What’s your full name? (Last, First)`);
+  bot.sendMessage(
+    uid,
+    `Hi ${msg.from.first_name}! 💙🐋
+
+Let's have a quick chat about how your month went.
+
+This check-in is for the month of ${currentMonth()}, even if you're answering later.
+
+What is your full name?
+(Last, First)`,
+    { reply_markup: removeKeyboard() }
+  );
 });
 
-// ------------------ MESSAGE HANDLER ------------------
-bot.on("message", async(msg)=>{
+/* ---------------- MESSAGE HANDLER ---------------- */
+
+bot.on("message", async (msg) => {
   const uid = msg.from.id;
-  if(!sessions[uid] || msg.text.startsWith("/")) return;
+
+  if (!sessions[uid] || !msg.text || msg.text.startsWith("/")) return;
 
   const session = sessions[uid];
-  const text = msg.text;
+  const text = msg.text.trim();
 
-  switch(session.step){
-    // ----- BASIC INFO -----
+  switch (session.step) {
     case "name":
-      storage.updateUser(uid,{name:text});
-      session.step="nickname";
-      return safeSend(uid,"Great! What should we call you?");
+      storage.updateUser(uid, { name: text });
+      session.answers.name = text;
+      session.step = "lc";
 
-    case "nickname":
-      storage.updateUser(uid,{nickname:text});
-      session.step="lc";
-      return safeSend(uid,"Which LC are you from?",{
-        reply_markup:{keyboard:[["AdMU","CSB","DLSU"],["UPC","UPD","UPLB"],["UPM","UST","MC"],["EST/National OC"]],one_time_keyboard:true}
+      return bot.sendMessage(uid, "What is your LC?", {
+        reply_markup: { keyboard: lcs, one_time_keyboard: true }
       });
 
     case "lc":
-      storage.updateUser(uid,{lc:text});
-      session.step="role";
-      return safeSend(uid,"What’s your role?",{reply_markup:{keyboard:roles,one_time_keyboard:true}});
+      storage.updateUser(uid, { lc: text });
+      session.answers.lc = text;
+      session.step = "role";
+
+      return bot.sendMessage(uid, "What is your role?", {
+        reply_markup: { keyboard: roles, one_time_keyboard: true }
+      });
 
     case "role":
-      storage.updateUser(uid,{role:text});
+      storage.updateUser(uid, { role: text });
       session.role = text;
-
-      session.questions = buildQuestionSet("receive");
+      session.answers.role = text;
+      session.questions = questions.buildQuestionSet(currentMonth(), "receive");
       session.index = 0;
       session.step = "receive";
 
-      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+      await bot.sendMessage(
+        uid,
+        `First, please answer these in the context of whether you received the following standards.
 
-    // ----- RECEIVE -----
+In the month of ${currentMonth()}, I felt... 💙`
+      );
+
+      return sendQuestion(uid, session);
+
     case "receive":
       session.answers[`receive_${session.questions[session.index].code}`] = text;
       session.index++;
-      if(session.index < session.questions.length)
-        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-      if(session.role === "Member"){
-        session.step="est";
-        return safeSend(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
+      if (session.index < session.questions.length) {
+        return sendQuestion(uid, session);
       }
 
-      // ----- GIVE -----
-      await safeSend(uid,"Now thinking about your team. These questions are in the context of how you supported your members this February.");
-      session.questions = buildQuestionSet("give");
+      if (session.role === "Member") {
+        return promptEst(uid, session);
+      }
+
+      session.questions = questions.buildQuestionSet(currentMonth(), "give");
       session.index = 0;
       session.step = "give";
-      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+
+      await bot.sendMessage(
+        uid,
+        `Now let's answer these in the context of whether you gave the following standards to your members.
+
+In the month of ${currentMonth()}, I was able to...`
+      );
+
+      return sendQuestion(uid, session);
 
     case "give":
       session.answers[`give_${session.questions[session.index].code}`] = text;
       session.index++;
-      if(session.index < session.questions.length)
-        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-      session.step = "est";
-      return safeSend(uid,"Are you part of EST or National OC?",{reply_markup:{keyboard:yesNo,one_time_keyboard:true}});
-
-    // ----- EST -----
-    case "est":
-      if(text==="Yes"){
-        session.step="est_project";
-        return safeSend(uid,"These questions are in the context of your National/OC role.\nWhich National/OC project are you part of?");
+      if (session.index < session.questions.length) {
+        return sendQuestion(uid, session);
       }
 
-      if(session.role==="EB") return proceedAchievements(uid, session);
-      return finishCheckIn(uid, session);
+      return promptEst(uid, session);
+
+    case "est":
+      session.answers.in_est = text;
+
+      if (text === "Yes") {
+        session.step = "est_project";
+
+        return bot.sendMessage(
+          uid,
+          "What EST or National OC are you part of?",
+          { reply_markup: removeKeyboard() }
+        );
+      }
+
+      return goToPostEst(uid, session);
 
     case "est_project":
       session.answers.est_project = text;
-      session.questions = buildQuestionSet("est");
+      session.questions = questions.buildQuestionSet(currentMonth(), "est");
       session.index = 0;
       session.step = "est_questions";
-      return safeSend(uid, session.questions[0].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
+
+      await bot.sendMessage(
+        uid,
+        `Please answer these in the context of the standards you received in EST/National OC.
+
+In the month of ${currentMonth()}, I felt... 🌍`
+      );
+
+      return sendQuestion(uid, session);
 
     case "est_questions":
       session.answers[`est_${session.questions[session.index].code}`] = text;
       session.index++;
-      if(session.index < session.questions.length)
-        return safeSend(uid, session.questions[session.index].text, {reply_markup:{keyboard:scale,one_time_keyboard:true}});
 
-      if(session.role==="EB") return proceedAchievements(uid, session);
-      return finishCheckIn(uid, session);
+      if (session.index < session.questions.length) {
+        return sendQuestion(uid, session);
+      }
 
-    // ----- EB KPI -----
-    case "deptQuestions":
-      session.kpi_dept=text;
-      session.kpi_index=0;
-      session.answers[text]={};
-      session.step="achievements_dept";
+      return goToPostEst(uid, session);
 
-      await safeSend(uid,`These are your department achievements for ${MONTH_NAME}. Please provide the numbers you achieved for each metric.`);
-      return sendKPIQuestion(uid, session);
+    case "dept":
+      session.kpi_dept = text;
+      session.answers.department = text;
+      session.kpi_index = 0;
+      session.answers.kpi = {};
+      session.step = "kpi";
 
-    case "achievements_dept":
-      const dept=session.kpi_dept;
-      session.answers[dept][session.kpi_index]=text;
+      await bot.sendMessage(
+        uid,
+        `Now please input your achieved KPI numbers for the month of ${currentMonth()}.`,
+        { reply_markup: removeKeyboard() }
+      );
+
+      return sendKPI(uid, session);
+
+    case "kpi": {
+      const dept = session.kpi_dept;
+      const metric = deptQuestions[dept][session.kpi_index];
+
+      session.answers.kpi[metric] = text;
       session.kpi_index++;
-      if(session.kpi_index < deptQuestions[dept].length)
-        return sendKPIQuestion(uid, session);
 
-      session.step="final_messages";
-      return safeSend(uid,"Any final messages you'd like to share?");
+      if (session.kpi_index < deptQuestions[dept].length) {
+        return sendKPI(uid, session);
+      }
 
-    case "final_messages":
-      session.answers.final_messages=text;
-      return finishCheckIn(uid, session);
+      return askNAMS(uid, session);
+    }
+
+    case "nams":
+      if (!text) {
+        return askNAMS(uid, session, true);
+      }
+
+      session.answers.nams_reference = text;
+      session.step = "final";
+
+      return bot.sendMessage(uid, "Any last messages? 💬", {
+        reply_markup: removeKeyboard()
+      });
+
+    case "final":
+      session.answers.final_messages = text;
+      return finish(uid, session);
+
+    default:
+      return null;
   }
 });
 
-// ------------------ KPI FUNCTIONS ------------------
-function proceedAchievements(uid, session){
-  session.step="deptQuestions";
-  safeSend(uid,"Which department are you an EB of?",{reply_markup:{keyboard:lcvpFunctions,one_time_keyboard:true}});
+/* ---------------- QUESTION SENDER ---------------- */
+
+function sendQuestion(uid, session) {
+  const q = session.questions[session.index];
+
+  return bot.sendMessage(
+    uid,
+    `Question ${session.index + 1} of ${session.questions.length}
+
+${q.text}`,
+    { reply_markup: { keyboard: scale, one_time_keyboard: true } }
+  );
 }
 
-function sendKPIQuestion(uid, session){
+/* ---------------- KPI FUNCTIONS ---------------- */
+
+function sendKPI(uid, session) {
   const dept = session.kpi_dept;
   const metrics = deptQuestions[dept];
   const q = metrics[session.kpi_index];
 
-  const text = dept==="TM"
-    ? `How many people are in the "${q}" department? (Please input as #VP, #TL, #Members, #Directors - Example: 1,3,9,0) 👥`
-    : typeof q==="object"
-      ? `How many ${q.code} did you achieve this month? ${q.text}`
-      : q;
+  return bot.sendMessage(
+    uid,
+    `Metric ${session.kpi_index + 1} of ${metrics.length}
 
-  safeSend(uid, text);
+${q}`
+  );
 }
 
-// ------------------ FINISH ------------------
-async function finishCheckIn(uid, session){
-  const user = storage.getUser(uid) || { name:"Unknown", nickname:"Unknown", lc:"Unknown" };
+/* ---------------- FINISH ---------------- */
+
+async function finish(uid, session) {
+  const user = storage.getUser(uid);
+  const namsReference = session.answers.nams_reference;
+
+  if (!namsReference) {
+    return askNAMS(uid, session, true);
+  }
+
   const row = [
     new Date().toISOString(),
+    currentMonth(),
+    namsReference,
     user.name,
-    user.nickname,
     user.lc,
     session.role,
     JSON.stringify(session.answers)
   ];
 
-  try { await sheets.submitRow(row); } 
-  catch(err){ console.error("Google Sheets error:", err); }
+  try {
+    await sheets.submitRow(row);
+  } catch (err) {
+    console.error(err);
+    return bot.sendMessage(
+      uid,
+      "Something went wrong while submitting your response. Please try sending your last message again in a moment."
+    );
+  }
 
   storage.clearAnswers(uid);
-  safeSend(uid,"Thank you! 💙🐋\nYour feedback has been submitted ✨ Thank you for building #FearlessAPHL with us!");
+
+  await bot.sendMessage(
+    uid,
+    `Thank you for building #FearlessAPHL with us. 💙🐋
+
+Your feedback for ${currentMonth()} has been submitted.`
+  );
+
   delete sessions[uid];
 }
