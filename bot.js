@@ -5,7 +5,7 @@ const questions = require("./questions");
 const sheets = require("./sheets");
 
 const TOKEN = process.env.TOKEN;
-const FORCE_MONTH = "March";
+const FORCE_MONTH = "April";
 
 /* ---------------- BOT INITIALIZATION ---------------- */
 
@@ -207,8 +207,7 @@ Let's have a quick chat about how your month went.
 
 This check-in is for the month of ${currentMonth()}, even if you're answering later.
 
-What is your full name?
-(Last, First)`,
+Please input your unique NAMS Code here. If you did not answer the March NAMS, kindly answer that first before completing this form.`,
     { reply_markup: removeKeyboard() }
   );
 });
@@ -369,18 +368,10 @@ In the month of ${currentMonth()}, I felt... 🌍`
         return sendContextQuestion(uid, session);
       }
 
-      return askNAMS(uid, session);
-
-    case "nams":
-      if (!text) {
-        return askNAMS(uid, session, true);
-      }
-
-      session.answers.nams_reference = text;
-      session.step = "final";
+    session.step = "final";
 
       return bot.sendMessage(uid, "Any last messages? 💬", {
-        reply_markup: removeKeyboard()
+      reply_markup: removeKeyboard()
       });
 
     case "final":
@@ -425,10 +416,7 @@ ${q}`
 
 async function finish(uid, session) {
   const user = storage.getUser(uid);
-  const namsReference = session.answers.nams_reference;
-
-  if (!namsReference) {
-    return askNAMS(uid, session, true);
+  const namsReference = user.name; // using the first input as NAMS code
   }
 
   const row = [
