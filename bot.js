@@ -62,10 +62,10 @@ const deptQuestions = { /* KEEP SAME AS YOURS */
 
 const contextQuestions = [
   "What were your top 3 focuses for the month of April? 🌟",
-  "What worked well this month? 💙",
-  "What could have been improved? 🌱",
-  "What was the context of your LC/department? 🌍",
-  "What are your focus areas for May? 🚀"
+  "What worked well this month? Please be as elaborative as possible. 💙",
+  "What could have been improved? Please be as elaborative as possible.  🌱",
+  "What was the context of your LC/department? Please be as specific as possible. 🌍",
+  "What are your ways forwards and top focus areas for May? 🚀"
 ];
 
 function currentMonth() {
@@ -301,7 +301,7 @@ async function finish(uid, session) {
 
   storage.clearAnswers(uid);
 
-  await bot.sendMessage(uid, `Submitted 💙 Thank you for building #FearlessAPHL`);
+  await bot.sendMessage(uid, `Submitted your feedback for April 💙 Thank you for building #FearlessAPHL`);
 
   delete sessions[uid];
 }
