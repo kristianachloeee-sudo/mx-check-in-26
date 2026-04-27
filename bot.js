@@ -94,11 +94,11 @@ const deptQuestions = {
 /* ---------------- CONTEXT QUESTIONS ---------------- */
 
 const contextQuestions = [
-  "What were your top 3 focuses for the month of March? 🌟",
-  "What worked well this month in terms of operations? 💙",
-  "What could have been improved this month in terms of operations? 🌱",
-  "What was the context of your LC or department this month? 🌍",
-  "What are your focus areas for April? 🚀"
+  "What were your top 3 focuses for the month of April? 🌟",
+  "What worked well this month in terms of operations? Please provide as much context as possible! 💙",
+  "What could have been improved this month in terms of operations? Please provide as much context as possible!  🌱",
+  "What was the context of your LC or department this month? Please provide as much information as possible! 🌍",
+  "What are your ways forwards and focus areas for May? 🚀"
 ];
 
 /* ---------------- FORCE MONTH ---------------- */
