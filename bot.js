@@ -7,7 +7,7 @@ const sheets = require("./sheets");
 const TOKEN = process.env.TOKEN;
 const FORCE_MONTH = "April";
 
-/* ---------------- BOT INITIALIZATION ---------------- */
+/* ---------------- INIT ---------------- */
 
 let bot;
 
@@ -18,25 +18,20 @@ if (process.env.WEBHOOK_URL) {
 
   bot = new TelegramBot(TOKEN, { polling: false });
 
-  const webhookPath = `/webhook/${TOKEN}`;
-  const fullWebhookUrl = `${process.env.WEBHOOK_URL}${webhookPath}`;
+  const path = `/webhook/${TOKEN}`;
+  bot.setWebHook(`${process.env.WEBHOOK_URL}${path}`);
 
-  bot.setWebHook(fullWebhookUrl);
-
-  app.post(webhookPath, (req, res) => {
+  app.post(path, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
   });
 
-  app.get("/", (_req, res) => res.send("MXS Bot running"));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+  app.listen(process.env.PORT || 3000);
 } else {
   bot = new TelegramBot(TOKEN, { polling: true });
 }
 
-/* ---------------- KEYBOARDS ---------------- */
+/* ---------------- CONSTANTS ---------------- */
 
 const yesNo = [["Yes", "No"]];
 const scale = [["1: Not Really"], ["3: Somehow"], ["5: Yes Definitely"]];
@@ -44,35 +39,19 @@ const roles = [["Member", "TL"], ["EB", "LCP"], ["MCVP"]];
 const lcs = [["MC", "ADMU", "CSB"], ["DLSU", "UPC", "UPD"], ["UPLB", "UPM", "UST"]];
 const departments = [["TM", "FLA", "OGX"], ["IGV", "IGT", "BD"], ["MKT", "PR", "EWA"]];
 
-/* ---------------- KPI DATA ---------------- */
-
-const deptQuestions = { /* KEEP SAME AS YOURS */ 
-  TM: ["P", "TM", "FLA", "OGX", "IGV", "IGT", "MKT", "EWA", "PR", "BD"],
-  FLA: ["$ Total Revenue Recognised 💰", "$ Net Profit 💸", "%Budget Variance (GvA) 📈", "%FSI Compliance Rate 📋"],
-  OGX: ["#APL 👥", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  IGV: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  IGT: ["#Opportunities Opened 🔎", "#APD ✅", "#RE ✈️", "#FI 🌍", "Average NPS 💯"],
-  MKT: ["#Digital Campaigns 📱", "Physical Campaigns/Projects 🎪", "#Sign-ups 📝"],
-  BD: ["$BD Revenue Recognised 💰", "#GEPP Closed 🤝", "%SOP Compliance 📋", "Average Partner NPS 💯"],
-  EWA: ["Total Event Sign-ups 📝", "#EwA Events Executed 🎪", "%EwA2ELD ⚡️", "#EwA Partners Closed 🤝", "$Event Revenue Recognised 💰"],
-  PR: ["Total Event Sign-ups 📝", "#PR Events Executed 🎪", "%PR2ELD ⚡️", "#PR Partners Closed 🤝", "$Event Revenue Recognised 💰"]
-};
-
-/* ---------------- CONTEXT ---------------- */
-
-const contextQuestions = [
-  "What were your top 3 focuses for the month of April? 🌟",
-  "What worked well this month? Please be as elaborative as possible. 💙",
-  "What could have been improved? Please be as elaborative as possible.  🌱",
-  "What was the context of your LC/department? Please be as specific as possible. 🌍",
-  "What are your ways forwards and top focus areas for May? 🚀"
-];
-
 function currentMonth() {
   return FORCE_MONTH;
 }
 
 const sessions = {};
+
+const contextQuestions = [
+  "What were your top 3 focuses for April? 🌟",
+  "What worked well? 💙",
+  "What could have been improved? 🌱",
+  "What was your LC/department context? 🌍",
+  "What are your focus areas for May? 🚀"
+];
 
 function removeKeyboard() {
   return { remove_keyboard: true };
@@ -92,17 +71,18 @@ function startContext(uid, session) {
   session.context_index = 0;
   session.answers.context = [];
 
-  return bot.sendMessage(uid, "Leadership reflection ✨", { reply_markup: removeKeyboard() })
-    .then(() => sendContextQuestion(uid, session));
+  return sendContextQuestion(uid, session);
 }
 
 function sendContextQuestion(uid, session) {
   return bot.sendMessage(
     uid,
-    `Question ${session.context_index + 1}/${contextQuestions.length}\n\n${contextQuestions[session.context_index]}`
+    `Question ${session.context_index + 1}/${contextQuestions.length}\n\n${contextQuestions[session.context_index]}`,
+    { reply_markup: removeKeyboard() }
   );
 }
 
+/* 🔥 FIXED: Proper routing */
 function goToPostEst(uid, session) {
   if (session.role === "EB") {
     session.step = "dept";
@@ -111,7 +91,15 @@ function goToPostEst(uid, session) {
     });
   }
 
-  return startContext(uid, session);
+  if (session.role === "LCP") {
+    return startContext(uid, session);
+  }
+
+  // Everyone else → skip context
+  session.step = "final";
+  return bot.sendMessage(uid, "Any last messages? 💬", {
+    reply_markup: removeKeyboard()
+  });
 }
 
 /* ---------------- START ---------------- */
@@ -130,13 +118,15 @@ bot.onText(/\/checkin/, (msg) => {
     context_index: 0
   };
 
-  bot.sendMessage(uid, `Hi ${msg.from.first_name}! 💙🐋
+  bot.sendMessage(
+    uid,
+    `Hi ${msg.from.first_name}! 💙🐋
 
 April check-in 🌿
 
-Please enter your NAMS Code to begin.`, {
-    reply_markup: removeKeyboard()
-  });
+Please enter your NAMS Code to begin.`,
+    { reply_markup: removeKeyboard() }
+  );
 });
 
 /* ---------------- MESSAGE HANDLER ---------------- */
@@ -168,7 +158,8 @@ bot.on("message", async (msg) => {
     case "role":
       storage.updateUser(uid, { role: text });
       session.role = text;
-      session.questions = questions.buildQuestionSet(currentMonth(), "receive");
+
+      session.questions = questions.buildQuestionSet(currentMonth(), "receive") || [];
       session.index = 0;
       session.step = "receive";
 
@@ -176,14 +167,14 @@ bot.on("message", async (msg) => {
       return sendQuestion(uid, session);
 
     case "receive":
-      session.answers[`receive_${session.questions[session.index].code}`] = text;
+      session.answers[`receive_${session.questions[session.index]?.code}`] = text;
       session.index++;
 
       if (session.index < session.questions.length) return sendQuestion(uid, session);
 
       if (session.role === "Member") return promptEst(uid, session);
 
-      session.questions = questions.buildQuestionSet(currentMonth(), "give");
+      session.questions = questions.buildQuestionSet(currentMonth(), "give") || [];
       session.index = 0;
       session.step = "give";
 
@@ -191,7 +182,7 @@ bot.on("message", async (msg) => {
       return sendQuestion(uid, session);
 
     case "give":
-      session.answers[`give_${session.questions[session.index].code}`] = text;
+      session.answers[`give_${session.questions[session.index]?.code}`] = text;
       session.index++;
 
       if (session.index < session.questions.length) return sendQuestion(uid, session);
@@ -210,7 +201,7 @@ bot.on("message", async (msg) => {
 
     case "est_project":
       session.answers.est_project = text;
-      session.questions = questions.buildQuestionSet(currentMonth(), "est");
+      session.questions = questions.buildQuestionSet(currentMonth(), "est") || [];
       session.index = 0;
       session.step = "est_questions";
 
@@ -218,7 +209,7 @@ bot.on("message", async (msg) => {
       return sendQuestion(uid, session);
 
     case "est_questions":
-      session.answers[`est_${session.questions[session.index].code}`] = text;
+      session.answers[`est_${session.questions[session.index]?.code}`] = text;
       session.index++;
 
       if (session.index < session.questions.length) return sendQuestion(uid, session);
@@ -231,17 +222,18 @@ bot.on("message", async (msg) => {
       session.kpi_index = 0;
       session.step = "kpi";
 
-      await bot.sendMessage(uid, `Enter KPIs for ${currentMonth()}`);
-      return sendKPI(uid, session);
+      return bot.sendMessage(uid, `Enter KPIs for ${currentMonth()}`);
 
     case "kpi":
-      const dept = session.kpi_dept;
-      const metric = deptQuestions[dept][session.kpi_index];
+      const metrics = deptQuestions[session.kpi_dept];
+      const metric = metrics[session.kpi_index];
 
       session.answers.kpi[metric] = text;
       session.kpi_index++;
 
-      if (session.kpi_index < deptQuestions[dept].length) return sendKPI(uid, session);
+      if (session.kpi_index < metrics.length) {
+        return bot.sendMessage(uid, `Metric ${session.kpi_index + 1}/${metrics.length}\n${metrics[session.kpi_index]}`);
+      }
 
       return startContext(uid, session);
 
@@ -265,27 +257,25 @@ bot.on("message", async (msg) => {
 
 function sendQuestion(uid, session) {
   const q = session.questions[session.index];
+
+  if (!q) {
+    return bot.sendMessage(uid, "⚠️ Error loading question. Check questions.js");
+  }
+
   return bot.sendMessage(uid, `Q${session.index + 1}: ${q.text}`, {
     reply_markup: { keyboard: scale, one_time_keyboard: true }
   });
-}
-
-function sendKPI(uid, session) {
-  const dept = session.kpi_dept;
-  const metrics = deptQuestions[dept];
-  return bot.sendMessage(uid, `Metric ${session.kpi_index + 1}/${metrics.length}\n${metrics[session.kpi_index]}`);
 }
 
 /* ---------------- FINISH ---------------- */
 
 async function finish(uid, session) {
   const user = storage.getUser(uid);
-  const namsReference = user.name;
 
   const row = [
     new Date().toISOString(),
     currentMonth(),
-    namsReference,
+    user.name,
     user.name,
     user.lc,
     session.role,
@@ -301,7 +291,7 @@ async function finish(uid, session) {
 
   storage.clearAnswers(uid);
 
-  await bot.sendMessage(uid, `Submitted your feedback for April 💙 Thank you for building #FearlessAPHL`);
+  await bot.sendMessage(uid, `Submitted 💙 Thank you for building #FearlessAPHL`);
 
   delete sessions[uid];
 }
