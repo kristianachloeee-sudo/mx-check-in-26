@@ -22,18 +22,18 @@ const EST_CODES = ["1.1", "1.2", "5.2", "6.2", "6.3", "6.4"];
 /* ------------------------------------------------ */
 
 function overrideText(code, mode, month) {
-  if (month !== "March") return null;
+  if (month !== "April") return null;
 
   if (mode === "receive") {
     const receive = {
-      "1.1": "In the month of March, I felt clear about my responsibilities and expectations for the month.",
-      "1.2": "In the month of March, I felt supported in my Personal Development and Growth. I have created a PDP and have started working with my direct head on it.",
-      "2.3": "In the month of March, I felt like I was given spaces to be upskilled within my role.",
-      "4.2": "In the month of March, I felt like I was given enough opportunities to be engaged with my community, both locally and nationally.",
-      "5.2": "In the month of March, I felt great and I know where to go to get support emotionally and mentally.",
-      "6.2": "In the month of March, I felt like I was given enough opportunities to engage with my direct team outside of work.",
-      "6.3": "In the month of March, I felt like I was given a chance to review and work with my team to improve our performance.",
-      "6.4": "In the month of March, I felt like I, and my team, were given the space to engage in team development opportunities."
+      "1.1": "In the month of April, I felt clear about my responsibilities and expectations for the month.",
+      "1.2": "In the month of April, I felt supported in my Personal Development and Growth. I have created a PDP and have started working with my direct head on it.",
+      "2.3": "In the month of April, I felt like I was given spaces to be upskilled within my role.",
+      "4.2": "In the month of April, I felt like I was given enough opportunities to be engaged with my community, both locally and nationally.",
+      "5.2": "In the month of April, I felt great and I know where to go to get support emotionally and mentally.",
+      "6.2": "In the month of April, I felt like I was given enough opportunities to engage with my direct team outside of work.",
+      "6.3": "In the month of April, I felt like I was given a chance to review and work with my team to improve our performance.",
+      "6.4": "In the month of April, I felt like I, and my team, were given the space to engage in team development opportunities."
     };
 
     return receive[code] || null;
