@@ -41,14 +41,14 @@ function overrideText(code, mode, month) {
 
   if (mode === "give") {
     const give = {
-      "1.1": "In the month of March, I was able to provide spaces for me to align with my members individually and as a team their roles and responsibilities for the month.",
-      "1.2": "In the month of March, I was able to guide my members through their PDP and supported them through their personal growth.",
-      "2.3": "In the month of March, I was able to give my members opportunities to be upskilled and capacitated for their role.",
-      "4.2": "In the month of March, I was able to give my team opportunities to engage with the local and national plenary.",
-      "5.2": "In the month of March, I was able to check-in with my members to ensure they are doing fine emotionally and mentally. I also ensured they are aware of where to get support should they need it.",
-      "6.2": "In the month of March, I was able to initiate engagement opportunities with my direct team outside of work.",
-      "6.3": "In the month of March, I was able to facilitate a performance review for my team and for us to provide recommendations for improvement.",
-      "6.4": "In the month of March, I was able to provide spaces for my team for their own development (ex. LEAD Spaces, Soft Skills, etc.)."
+      "1.1": "In the month of April, I was able to provide spaces for me to align with my members individually and as a team their roles and responsibilities for the month.",
+      "1.2": "In the month of April, I was able to guide my members through their PDP and supported them through their personal growth.",
+      "2.3": "In the month of April, I was able to give my members opportunities to be upskilled and capacitated for their role.",
+      "4.2": "In the month of April, I was able to give my team opportunities to engage with the local and national plenary.",
+      "5.2": "In the month of April, I was able to check-in with my members to ensure they are doing fine emotionally and mentally. I also ensured they are aware of where to get support should they need it.",
+      "6.2": "In the month of April, I was able to initiate engagement opportunities with my direct team outside of work.",
+      "6.3": "In the month of April, I was able to facilitate a performance review for my team and for us to provide recommendations for improvement.",
+      "6.4": "In the month of April, I was able to provide spaces for my team for their own development (ex. LEAD Spaces, Soft Skills, etc.)."
     };
 
     return give[code] || null;
@@ -56,12 +56,12 @@ function overrideText(code, mode, month) {
 
   if (mode === "est") {
     const est = {
-      "1.1": "In the month of March, I felt clear about my responsibilities and expectations for the month.",
-      "1.2": "In the month of March, I felt like this role has given me the opportunity to grow and feel supported in my personal development.",
-      "5.2": "In the month of March, I felt great and I know where to go to get support emotionally and mentally.",
-      "6.2": "In the month of March, I felt like I was given enough opportunities to engage with my direct team outside of work.",
-      "6.3": "In the month of March, I felt like I was given a chance to review and work with my team to improve our performance.",
-      "6.4": "In the month of March, I felt like I, and my team, were given the space to engage in team development opportunities."
+      "1.1": "In the month of April, I felt clear about my responsibilities and expectations for the month.",
+      "1.2": "In the month of April, I felt like this role has given me the opportunity to grow and feel supported in my personal development.",
+      "5.2": "In the month of April, I felt great and I know where to go to get support emotionally and mentally.",
+      "6.2": "In the month of April, I felt like I was given enough opportunities to engage with my direct team outside of work.",
+      "6.3": "In the month of April, I felt like I was given a chance to review and work with my team to improve our performance.",
+      "6.4": "In the month of April, I felt like I, and my team, were given the space to engage in team development opportunities."
     };
 
     return est[code] || null;
