@@ -5,7 +5,7 @@ const questions = require("./questions");
 const sheets = require("./sheets");
 
 const TOKEN = process.env.TOKEN;
-const FORCE_MONTH = "April";
+const FORCE_MONTH = "May";
 
 /* ---------------- BOT INITIALIZATION ---------------- */
 let bot;
@@ -58,11 +58,12 @@ const deptQuestions = {
 
 /* ---------------- CONTEXT ---------------- */
 const contextQuestions = [
-  "What were your top 3 focuses for the month of April? 🌟",
+  "What were your top 3 focuses for the month of May? 🌟",
   "What worked well this month? Please be as elaborative as possible. 💙",
   "What could have been improved? Please be as elaborative as possible. 🌱",
   "What was the context of your LC/department? Please be as specific as possible. 🌍",
-  "What are your ways forwards and top focus areas for May? 🚀"
+  "What are your ways forwards and top focus areas for June? 🚀",
+  "Could you please share your availabilities in the last two weeks of June for replanning?"
 ];
 
 function currentMonth() {
@@ -306,7 +307,7 @@ async function finish(uid, session) {
 
   await bot.sendMessage(
     uid,
-    "Submitted your feedback for April 💙 Thank you for building #FearlessAPHL"
+    "Submitted your feedback for May 💙 Please don't forge to submit your answers for NAMS too! Thank you for building #FearlessAPHL"
   );
 
   delete sessions[uid];
