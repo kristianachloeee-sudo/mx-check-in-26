@@ -147,6 +147,12 @@ bot.on("message", async (msg) => {
     case "lc":
       storage.updateUser(uid, { lc: text });
       session.answers.lc = text;
+      session.step = "nps";
+
+      return bot.sendMessage(uid, "On a scale of 1-10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development organisation?");
+
+    case "nps":
+      session.answers.nps = text; // stores free-text answer
       session.step = "role";
 
       return bot.sendMessage(uid, "What is your role?", {
