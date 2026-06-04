@@ -120,7 +120,7 @@ bot.onText(/\/checkin/, (msg) => {
 
   bot.sendMessage(
     uid,
-    `Hi ${msg.from.first_name}! 💙🐋 April check-in 🌿 Please enter your NAMS Code to begin.`,
+    `Hi ${msg.from.first_name}! 💙🐋 May check-in 🌿 Please enter your unique personal NAMS Code to begin. If you do not have a NAMS code, kindly input your first and last name.`,
     { reply_markup: removeKeyboard() }
   );
 });
@@ -149,7 +149,7 @@ bot.on("message", async (msg) => {
       session.answers.lc = text;
       session.step = "nps";
 
-      return bot.sendMessage(uid, "On a scale of 1-10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development organisation?");
+      return bot.sendMessage(uid, "On a scale of 1-10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development organisation to others? Feel free to briefly explain why as well ✨");
 
     case "nps":
       session.answers.nps = text; // stores free-text answer
@@ -313,7 +313,7 @@ async function finish(uid, session) {
 
   await bot.sendMessage(
     uid,
-    "Submitted your feedback for May 💙 Please don't forge to submit your answers for NAMS too! Thank you for building #FearlessAPHL"
+    "Submitted your feedback for May 💙 Due to technical difficulties, NAMS will be released at the end of June instead~ Thank you for building #FearlessAPHL"
   );
 
   delete sessions[uid];
