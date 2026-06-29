@@ -1,14 +1,17 @@
 // questions.js
+
 /* ============================================================
    CONFIG
 ============================================================ */
+
 const TXP_MONTH = "June";
 const SURVEY_NAME = "National AIESEC Membership Survey";
 const NATCON_DATES = "July 31-August 2, 2026";
+
 /* ============================================================
    MXS QUESTIONS
-   (Codes preserved for Google Sheets)
 ============================================================ */
+
 const RECEIVE = [
   {
     code: "1.1",
@@ -47,6 +50,7 @@ const RECEIVE = [
     text: "I was given an opportunity to close my experience with my direct leader."
   }
 ];
+
 const GIVE = [
   {
     code: "1.1",
@@ -85,18 +89,30 @@ const GIVE = [
     text: "I gave my members the opportunity to close their experience in a team meeting or O2O for this TXP."
   }
 ];
+
+/* ============================================================
+   EST
+============================================================ */
+
+const EST = RECEIVE.filter((q) =>
+  ["1.1", "1.2", "5.2", "6.2", "6.3", "6.4"].includes(q.code)
+);
+
 /* ============================================================
    LPS
 ============================================================ */
+
 const LPS = [
   {
     code: "lps",
     text: "On a scale of 1-10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development program? Why? 💙"
   }
 ];
+
 /* ============================================================
    EXCHANGE
 ============================================================ */
+
 const EXCHANGE = [
   {
     code: "exchange_1",
@@ -117,9 +133,11 @@ const EXCHANGE = [
     text: "What can we do more of as an entity to help make exchange more worthwhile or more appealing to you? 🌍"
   }
 ];
+
 /* ============================================================
    NATIONAL
 ============================================================ */
+
 const NATIONAL = [
   {
     code: "national_1",
@@ -148,9 +166,11 @@ const NATIONAL = [
     text: "Do you feel like you're growing in your role this TXP? If yes, why. And if not, what can we do more of to facilitate that growth experience? 🌱"
   }
 ];
+
 /* ============================================================
    DIRECT LEADER LOGIC
 ============================================================ */
+
 function getLeaderTargets(role) {
   switch (role) {
     case "Member":
@@ -167,30 +187,39 @@ function getLeaderTargets(role) {
       return [];
   }
 }
+
 function normalizeLeaderCode(target) {
   return target.toLowerCase().replace(/\s+/g, "_");
 }
+
 function getDirectLeaderQuestions(targets) {
   if (!Array.isArray(targets) || targets.length === 0) {
     return [];
   }
+
   const result = [];
+
   targets.forEach((target) => {
     const normalized = normalizeLeaderCode(target);
+
     result.push({
       code: `leader_${normalized}_score`,
       text: `On a scale of 1 to 10, with 10 being the highest, how satisfied are you with the leadership from your ${target}? 🌟`
     });
+
     result.push({
       code: `leader_${normalized}_feedback`,
       text: `What is your ${target} doing well and what can they do better in the coming term? 💡`
     });
   });
+
   return result;
 }
+
 /* ============================================================
    CONTEXT (for VP and LCP)
 ============================================================ */
+
 const CONTEXT = [
   `What were your top 3 focuses for the month of ${TXP_MONTH}? 🌟`,
   "What worked well this month? Please be as elaborative as possible. 💙",
@@ -198,18 +227,22 @@ const CONTEXT = [
   "What was the context behind your department or LC this month? Please be as specific as possible. 🌍",
   "What are your top focus areas going into July? 🚀"
 ];
+
 /* ============================================================
    NATCON
 ============================================================ */
+
 const NATCON_QUESTION = {
   code: "natcon",
   text: `Will we be seeing you at NatCon on ${NATCON_DATES}? 🎉`,
   type: "choice",
   options: ["HELL YEAH 🔥", "NOPE ZZZ 😴", "STILL DECIDING 🤔"]
 };
+
 /* ============================================================
    EXPORTS
 ============================================================ */
+
 module.exports = {
   TXP_MONTH,
   SURVEY_NAME,
@@ -219,6 +252,7 @@ module.exports = {
   NATIONAL,
   RECEIVE,
   GIVE,
+  EST,
   CONTEXT,
   NATCON_QUESTION,
   getLeaderTargets,
