@@ -1,18 +1,14 @@
 // questions.js
-
 /* ============================================================
    CONFIG
 ============================================================ */
-
 const TXP_MONTH = "June";
-const SURVEY_NAME = "National Membership Survey";
+const SURVEY_NAME = "National AIESEC Membership Survey";
 const NATCON_DATES = "July 31-August 2, 2026";
-
 /* ============================================================
    MXS QUESTIONS
    (Codes preserved for Google Sheets)
 ============================================================ */
-
 const RECEIVE = [
   {
     code: "1.1",
@@ -51,7 +47,6 @@ const RECEIVE = [
     text: "I was given an opportunity to close my experience with my direct leader."
   }
 ];
-
 const GIVE = [
   {
     code: "1.1",
@@ -90,160 +85,142 @@ const GIVE = [
     text: "I gave my members the opportunity to close their experience in a team meeting or O2O for this TXP."
   }
 ];
-
-const EST = RECEIVE.filter(q =>
-  ["1.1","1.2","5.2","6.2","6.3","6.4","6.5"].includes(q.code)
-);
-
 /* ============================================================
    LPS
 ============================================================ */
-
 const LPS = [
-{
-code:"lps",
-text:"On a scale of 1–10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development programme? Why?"
-}
+  {
+    code: "lps",
+    text: "On a scale of 1-10, with 10 being the highest, how likely are you to recommend AIESEC as a leadership development program? Why? 💙"
+  }
 ];
-
 /* ============================================================
    EXCHANGE
 ============================================================ */
-
 const EXCHANGE = [
-{
-code:"exchange_1",
-text:"On a scale of 1–10, with 10 being the highest, how likely are you to go on an exchange (GV, GTa or GTe)?"
-},
-{
-code:"exchange_2",
-text:"Which among the following is the biggest influencer to that score?",
-type:"choice",
-options:[
-"Price",
-"Timeline",
-"Family",
-"Academics",
-"Others"
-]
-},
-{
-code:"exchange_3",
-text:"Do you think the price of an exchange (PHP8,000 for GV and PHP9,000–13,000 for GTa/GTe) is worth it? Why or why not?"
-},
-{
-code:"exchange_4",
-text:"What can we do more of as an entity to help make exchange more worthwhile or more appealing to you?"
-}
+  {
+    code: "exchange_1",
+    text: "On a scale of 1-10, with 10 being the highest, how likely are you to go on an exchange (GV, GTa or GTe)? ✈️"
+  },
+  {
+    code: "exchange_2",
+    text: "Which among the following is the biggest influencer to that score?",
+    type: "choice",
+    options: ["Price", "Timeline", "Family", "Academics", "Others - Please specify"]
+  },
+  {
+    code: "exchange_3",
+    text: "Do you think the price of an exchange (PHP8,000 for GV and PHP9,000-13,000 for GTa/GTe) is worth it? Why or why not? 💸"
+  },
+  {
+    code: "exchange_4",
+    text: "What can we do more of as an entity to help make exchange more worthwhile or more appealing to you? 🌍"
+  }
 ];
-
 /* ============================================================
    NATIONAL
 ============================================================ */
-
 const NATIONAL = [
-{
-code:"national_1",
-text:"I am aware of The Fearless Cup RnR initiative.",
-type:"yesno"
-},
-{
-code:"national_2",
-text:"I follow our national social media accounts and am in the APHL Network Telegram channel.",
-type:"yesno"
-},
-{
-code:"national_3",
-text:"What types of national campaigns or internal communications would make you feel more seen and heard as a member of APHL?"
-},
-{
-code:"national_4",
-text:"Do you feel incentivised to perform by our national hackathons or sprints? What can we do to encourage or motivate performance for yourself and your LC?"
-},
-{
-code:"national_5",
-text:"What would make you join national initiatives? What kinds of experiences would you be inclined to participate in?"
-},
-{
-code:"national_6",
-text:"Do you feel like you're growing in your role this TXP? Why or why not?"
-}
+  {
+    code: "national_1",
+    text: "I am aware of The Fearless Cup RnR initiative. 🏆",
+    type: "yesno"
+  },
+  {
+    code: "national_2",
+    text: "I follow our national social media accounts and am in the APHL Network Channel on Telegram. 📱",
+    type: "yesno"
+  },
+  {
+    code: "national_3",
+    text: "What types of national campaigns or internal communications would make you feel seen/heard as a member of APHL? 💬"
+  },
+  {
+    code: "national_4",
+    text: "Do you feel incentivised to perform by our national hackathons/sprints? What can we do to encourage/motivate performance for yourself and your LC? 🚀"
+  },
+  {
+    code: "national_5",
+    text: "What would make you join national initiatives? What kinds of experiences would you be inclined to participate in? ✨"
+  },
+  {
+    code: "national_6",
+    text: "Do you feel like you're growing in your role this TXP? If yes, why. And if not, what can we do more of to facilitate that growth experience? 🌱"
+  }
 ];
-
 /* ============================================================
    DIRECT LEADER LOGIC
 ============================================================ */
-
-function getLeaderTargets(role){
-
-switch(role){
-
-case "Member":
-return ["TL"];
-
-case "TL":
-return ["VP"];
-
-case "VP":
-return ["LCP","MCVP"];
-
-case "LCP":
-return ["MCP","MC Coach"];
-
-case "MCVP":
-return ["MCP"];
-
-default:
-return [];
-
+function getLeaderTargets(role) {
+  switch (role) {
+    case "Member":
+      return ["TL"];
+    case "TL":
+      return ["VP"];
+    case "VP":
+      return ["LCP"];
+    case "LCP":
+      return ["MCP", "MC Coach"];
+    case "MCVP":
+      return ["MCP"];
+    default:
+      return [];
+  }
 }
-
+function normalizeLeaderCode(target) {
+  return target.toLowerCase().replace(/\s+/g, "_");
 }
-
+function getDirectLeaderQuestions(targets) {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return [];
+  }
+  const result = [];
+  targets.forEach((target) => {
+    const normalized = normalizeLeaderCode(target);
+    result.push({
+      code: `leader_${normalized}_score`,
+      text: `On a scale of 1 to 10, with 10 being the highest, how satisfied are you with the leadership from your ${target}? 🌟`
+    });
+    result.push({
+      code: `leader_${normalized}_feedback`,
+      text: `What is your ${target} doing well and what can they do better in the coming term? 💡`
+    });
+  });
+  return result;
+}
 /* ============================================================
-   CONTEXT
+   CONTEXT (for VP and LCP)
 ============================================================ */
-
 const CONTEXT = [
-
-"What were your top 3 focuses for the month of June?",
-
-"What worked well this month?",
-
-"What could have been improved?",
-
-"What was the context behind your department or LC this month?",
-
-"What are your top focus areas going into July?"
-
+  `What were your top 3 focuses for the month of ${TXP_MONTH}? 🌟`,
+  "What worked well this month? Please be as elaborative as possible. 💙",
+  "What could have been improved? Please be as elaborative as possible. 🌱",
+  "What was the context behind your department or LC this month? Please be as specific as possible. 🌍",
+  "What are your top focus areas going into July? 🚀"
 ];
-
+/* ============================================================
+   NATCON
+============================================================ */
+const NATCON_QUESTION = {
+  code: "natcon",
+  text: `Will we be seeing you at NatCon on ${NATCON_DATES}? 🎉`,
+  type: "choice",
+  options: ["HELL YEAH 🔥", "NOPE ZZZ 😴", "STILL DECIDING 🤔"]
+};
 /* ============================================================
    EXPORTS
 ============================================================ */
-
 module.exports = {
-
-TXP_MONTH,
-
-SURVEY_NAME,
-
-NATCON_DATES,
-
-LPS,
-
-EXCHANGE,
-
-NATIONAL,
-
-RECEIVE,
-
-GIVE,
-
-EST,
-
-CONTEXT,
-
-getLeaderTargets
-
+  TXP_MONTH,
+  SURVEY_NAME,
+  NATCON_DATES,
+  LPS,
+  EXCHANGE,
+  NATIONAL,
+  RECEIVE,
+  GIVE,
+  CONTEXT,
+  NATCON_QUESTION,
+  getLeaderTargets,
+  getDirectLeaderQuestions
 };
