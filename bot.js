@@ -3,7 +3,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const storage = require("./storage");
 const questions = require("./questions");
 const sheets = require("./sheets");
-const lcQuestionsModule = require("./lc-questions");
+const lcQuestionsModule = require("./lcQuestions");
 
 const TOKEN = process.env.TOKEN;
 
