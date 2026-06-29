@@ -42,7 +42,7 @@ const scale = [["1: Not Really"], ["3: Somehow"], ["5: Yes Definitely"]];
 const roles = [["Member", "TL"], ["VP", "LCP"], ["MCVP"]];
 const lcs = [["MC", "ADMU", "CSB"], ["DLSU", "UPC", "UPD"], ["UPLB", "UPM", "UST"]];
 const departments = [["TM", "FLA", "OGX"], ["IGV", "IGT", "BD"], ["MKT", "PR", "EWA"]];
-const exchangeInfluencers = [["Price", "Timeline"], ["Family", "Academics"], ["Others - Please specify"]];
+const exchangeInfluencers = [["Price", "Timeline"], ["Family", "Academics"], ["Others - Please freehand type it!"]];
 const natconOptions = [["HELL YEAH 🔥"], ["NOPE ZZZ 😴"], ["STILL DECIDING 🤔"]];
 
 /* ---------------- VALID OPTIONS ---------------- */
