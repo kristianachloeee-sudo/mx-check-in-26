@@ -56,7 +56,7 @@ const LC_QUESTIONS = {
     {
       field: "upc_additional_concerns",
       type: "text",
-      prompt: "Do you have any more concerns you'd like to share? You may use this space freely 💭\n\nHowever, if it's more of a heavy or serious concern, kindly answer this form instead: https://bit.ly/AUPC_GrievanceForm2627"
+      prompt: "Do you have any more concerns you'd like to share? You may use this space freely 💭\n\nHowever, if it's more of a heavy or serious concern, kindly answer this form instead: [bit.ly](https://bit.ly/AUPC_GrievanceForm2627)"
     },
     {
       type: "message",
@@ -220,34 +220,16 @@ const LC_QUESTIONS = {
   Other: []
 };
 
-/*
-Example:
-
-ADMU: [
-  {
-    field: "admu_support_feedback",
-    type: "text",
-    prompt: "What is one thing ADMU can improve to support members better?"
-  },
-  {
-    field: "admu_event_visibility",
-    type: "choice",
-    prompt: "How visible do ADMU opportunities feel to you right now?",
-    options: ["Very visible", "Somewhat visible", "Not very visible", "Other"],
-    allowOther: true,
-    selectionField: "admu_event_visibility_selection",
-    detailField: "admu_event_visibility_other",
-    otherPrompt: "What answer should I record instead?"
-  }
-]
-*/
-
 function getLcQuestions(lc) {
   if (!lc) {
     return [];
   }
 
   return LC_QUESTIONS[lc] || LC_QUESTIONS.Other || [];
+}
+
+function getQuestionsForLC(lc) {
+  return getLcQuestions(lc);
 }
 
 function getAllLcQuestionFields() {
@@ -275,5 +257,6 @@ function getAllLcQuestionFields() {
 module.exports = {
   LC_QUESTIONS,
   getLcQuestions,
+  getQuestionsForLC,
   getAllLcQuestionFields
 };
